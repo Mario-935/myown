@@ -10,6 +10,7 @@ export default function PoseSketch() {
     let bodyPose;
     let poses = [];
     let connections;
+   
 
     const sketch = (p) => {
       p.setup = () => {
@@ -19,7 +20,8 @@ export default function PoseSketch() {
         video.hide();
       
         bodyPose = ml5.bodyPose('MoveNet');
-      
+    
+
         const waitForModel = setInterval(() => {
           if (bodyPose.model !== null) {
             clearInterval(waitForModel);
@@ -61,11 +63,12 @@ export default function PoseSketch() {
           }
         }
       };
-
+      
+    };
       function gotPoses(results) {
         poses = results;
       }
-    };
+      
 
     const myP5 = new p5(sketch, sketchRef.current);
 
