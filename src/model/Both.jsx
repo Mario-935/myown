@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import p5 from 'p5';
 import ml5 from 'ml5';
-import poseImage from '../pose/pose.jpg';
+import poseImage from '../Images/pose.jpg';
 
 export default function PoseMatcher() {
   const sketchRef = useRef();

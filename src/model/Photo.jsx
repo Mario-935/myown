@@ -2,7 +2,8 @@
 import React, { useRef, useEffect } from 'react';
 import p5 from 'p5';
 import ml5 from 'ml5';
-import poseImage from '../pose/pose2.png'; // asegúrate de que la ruta sea válida
+import photo from '../Images/pose.jpg'; // Asegúrate de que esta ruta sea correcta y que la imagen exista en tu proyecto
+ // asegúrate de que la ruta sea válida
 
 export default function PoseSketch() {
   const sketchRef = useRef();
@@ -27,7 +28,7 @@ export default function PoseSketch() {
       p.setup = async () => {
         p.createCanvas(640, 480);
   
-        p.loadImage(poseImage, (loadedImg) => {
+        p.loadImage(photo, (loadedImg) => {
           img = loadedImg;
           img.resize(640, 480);
   

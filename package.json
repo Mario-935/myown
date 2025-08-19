@@ -45,6 +45,7 @@
     ]
   },
   "devDependencies": {
-    "@types/p5": "^1.7.6"
+    "@types/p5": "^1.7.6",
+    "tailwindcss": "^3.4.17"
   }
 }

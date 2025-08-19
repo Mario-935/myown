@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import p5 from 'p5';
 import ml5 from 'ml5';
 
@@ -6,25 +6,31 @@ export default function PoseSketch() {
   const sketchRef = useRef(null);
   const p5Instance = useRef(null);
   const initialized = useRef(false);
+  const posesRef = useRef([]);
+  const [hasPose, setHasPose] = useState(false);
+  const [gpose, setGpose] = useState([]);
+  const takePhoto = () => {
+    setGpose(posesRef.current[0].keypoints);
+    console.log("📸 Foto tomada", gpose[0].keypoints );
+  };
 
   useEffect(() => {
+    
     if (initialized.current) return;
     initialized.current = true;
 
     let video;
     let bodyPose;
-    let poses = [];
     let connections;
 
     const gotPoses = (results) => {
-      poses = results;
+      posesRef.current = results;
+      setHasPose(results.length > 0); // habilita el botón si hay poses
     };
-
     const sketch = (p) => {
       p.setup = () => {
         p.createCanvas(640, 480).parent(sketchRef.current);
 
-        // 🔁 Eliminar videos previos creados por p5
         const existingVideos = sketchRef.current.querySelectorAll('video');
         existingVideos.forEach((vid) => {
           if (vid.srcObject) {
@@ -33,18 +39,12 @@ export default function PoseSketch() {
           vid.remove();
         });
 
-        // 🎥 Crear captura y ocultarla
         video = p.createCapture(p.VIDEO);
-video.size(640, 480);
-video.hide();
-
-
         video.size(640, 480);
+        video.hide();
 
-        // 🧠 Cargar modelo MoveNet
         bodyPose = ml5.bodyPose('MoveNet');
 
-        // ⏳ Esperar a que el modelo esté listo
         const waitForModel = setInterval(() => {
           if (bodyPose.model !== null) {
             clearInterval(waitForModel);
@@ -60,8 +60,8 @@ video.hide();
           p.image(video, 0, 0, p.width, p.height);
         }
 
-        for (let i = 0; i < poses.length; i++) {
-          const pose = poses[i];
+        for (let i = 0; i < posesRef.current.length; i++) {
+          const pose = posesRef.current[i];
           for (let j = 0; j < (connections || []).length; j++) {
             const pointA = pose.keypoints[connections[j][0]];
             const pointB = pose.keypoints[connections[j][1]];
@@ -83,10 +83,8 @@ video.hide();
       };
     };
 
-    // 🎨 Crear nueva instancia p5
     p5Instance.current = new p5(sketch, sketchRef.current);
 
-    // 🔄 Limpieza al desmontar componente
     return () => {
       if (p5Instance.current) {
         p5Instance.current.remove();
@@ -94,17 +92,23 @@ video.hide();
       }
       initialized.current = false;
 
-      // 🧹 Limpiar videos dentro del contenedor
       const existingVideos = sketchRef.current?.querySelectorAll('video') || [];
-existingVideos.forEach((vid) => {
-  if (vid.srcObject) {
-    vid.srcObject.getTracks().forEach((track) => track.stop());
-  }
-  vid.remove();
-});
-
+      existingVideos.forEach((vid) => {
+        if (vid.srcObject) {
+          vid.srcObject.getTracks().forEach((track) => track.stop());
+        }
+        vid.remove();
+      });
     };
   }, []);
 
-  return <div ref={sketchRef}></div>;
+  return (
+    <div>
+      <div ref={sketchRef}></div>
+      <button onClick={takePhoto} disabled={!hasPose}>
+  Take photo
+</button>
+
+    </div>
+  );
 }
