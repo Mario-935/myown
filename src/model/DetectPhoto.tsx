@@ -1,54 +1,70 @@
-import React, { useEffect } from "react";
-import ml5 from "ml5";
+import React, { useRef, useEffect } from "react";
+import p5 from "p5";
+import { loadPoseModel } from "./Detect_Pose";
 
-const PoseKeypointsOnly = ({ Photo }: { Photo: string }) => {
+type PhotoGameProps = {
+  Photo: string;
+};
+
+export default function PhotoGame({ Photo }: PhotoGameProps) {
+  const sketchRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    let bodyPose:
-      | {
-          detect: (
-            input: HTMLImageElement | HTMLCanvasElement,
-            callback: (results: any) => void
-          ) => void;
-        }
-      | undefined;
+    let img: any;
+    let bodyPose: any;
+    let poses: any[] = [];
+    let poseDetected = false;
+    let connections: number[][];
 
-    // Crear una imagen HTML y cargarla
-    const image = new Image();
-    image.src = Photo;
+    const sketch = (p: any) => {
+      p.setup = async () => {
+        p.createCanvas(640, 480);
+        img = await p.loadImage(Photo);
+        img.resize(640, 480);
 
-    image.onload = () => {
-      // Crear un canvas fuera del DOM solo para obtener los píxeles
-      const canvas = document.createElement("canvas");
-      canvas.width = 640;
-      canvas.height = 480;
-      const ctx = canvas.getContext("2d");
+        bodyPose = await loadPoseModel();
+        poses = await bodyPose.detect(img.canvas);
+        poseDetected = true;
+        connections = bodyPose.getSkeleton();
+        console.log("Modelo cargado y poses detectadas.", poses[0].keypoints);
+      };
 
-      if (ctx) {
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      p.draw = () => {
+        p.background(0);
+        if (img) p.image(img, 0, 0);
 
-        // Inicializar modelo
-        bodyPose = ml5.bodyPose("MoveNet", () => {
-          // Aquí pasamos el CANVAS (o la imagen)
-          bodyPose?.detect(canvas, (results: any) => {
-            if (results && results.length > 0) {
-              console.log("Keypoints detectados:", results[0].keypoints);
-            } else {
-              console.log("No se detectó ninguna pose.");
+        if (!poseDetected) return;
+
+        for (const pose of poses) {
+          // Dibuja líneas (conexiones)
+          for (const connection of connections || []) {
+            const pointA = pose.keypoints[connection[0]];
+            const pointB = pose.keypoints[connection[1]];
+            if (pointA.confidence > 0.1 && pointB.confidence > 0.1) {
+              p.stroke(255, 0, 0);
+              p.strokeWeight(2);
+              p.line(pointA.x, pointA.y, pointB.x, pointB.y);
             }
-          });
-        });
-      } else {
-        console.error("No se pudo obtener el contexto del canvas.");
-      }
+          }
+
+          // Dibuja los keypoints
+          for (const keypoint of pose.keypoints) {
+            if (keypoint.confidence > 0.1) {
+              p.fill(0, 255, 0);
+              p.noStroke();
+              p.circle(keypoint.x, keypoint.y, 10);
+            }
+          }
+        }
+      };
+    };
+
+    const myP5 = new p5(sketch, sketchRef.current!);
+
+    return () => {
+      myP5.remove();
     };
   }, [Photo]);
 
-  return (
-    <div>
-      Detectando keypoints en imagen estática...
-      <img src={Photo} alt="Pose" />
-    </div>
-  );
-};
-
-export default PoseKeypointsOnly;
+  return <div ref={sketchRef}></div>;
+}
